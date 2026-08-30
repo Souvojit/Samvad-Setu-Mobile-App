@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Send, MapPin, FileText, AlertTriangle, Image as ImageIcon, Navigation } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Send, MapPin, FileText, AlertTriangle, Image as ImageIcon } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
+import { useProblemStore } from '../../../store/problemStore';
 
 export default function ReviewScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Read from Zustand Global Memory
+  const department = useProblemStore((state: any) => state.department);
+  const description = useProblemStore((state: any) => state.description);
+
   // Real GPS State
   const [reportLocation, setReportLocation] = useState('Fetching current GPS location...');
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -18,9 +22,6 @@ export default function ReviewScreen() {
 
   // Attached Image State
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
-
-  const reportCategory = (params.category as string) || 'Water Supply';
-  const reportDescription = (params.description as string) || 'General municipal infrastructure grievance reported in Howrah.';
 
   useEffect(() => {
     fetchCurrentGPSLocation();
@@ -41,7 +42,7 @@ export default function ReviewScreen() {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setReportLocation('Howrah, West Bengal, India (Permission Denied)');
+        setReportLocation('Jharkhand Region (Permission Denied)');
         setIsLocLoading(false);
         return;
       }
@@ -53,18 +54,17 @@ export default function ReviewScreen() {
       const { latitude, longitude } = currentLocation.coords;
       setCoords({ latitude, longitude });
 
-      // Reverse geocode to get a clean street/area address
       let reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (reverseGeocode.length > 0) {
         const address = reverseGeocode[0];
-        const formatted = `${address.name || address.street || ''}, ${address.subregion || address.city || 'Howrah'}, ${address.region || 'West Bengal'}`;
+        const formatted = `${address.name || address.street || ''}, ${address.subregion || address.city || 'Jharkhand'}, ${address.region || 'India'}`;
         setReportLocation(formatted.replace(/^,\s/, ''));
       } else {
         setReportLocation(`Lat: ${latitude.toFixed(4)}, Long: ${longitude.toFixed(4)}`);
       }
     } catch (error) {
       console.error('Error fetching GPS:', error);
-      setReportLocation('Howrah, West Bengal, India');
+      setReportLocation('Jharkhand Region');
     } finally {
       setIsLocLoading(false);
     }
@@ -73,17 +73,23 @@ export default function ReviewScreen() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const ticketId = `TKT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      // Format data exactly as the HEI/Gov portals expect
+      const ticketId = `CHAL-${Math.floor(1000 + Math.random() * 9000)}`;
       const newTicket = {
         id: ticketId,
-        category: reportCategory,
-        description: reportDescription,
+        title: description ? `${description.substring(0, 35)}...` : 'Grassroots Innovation Challenge',
+        domain: department, // Syncs with Government filters
+        description: description, 
+        stage: 'Submitted', // Triggers the NEP-2020 Lifecycle
+        status: 'Open for HEI Claim',
+        assignedDept: 'Pending AI Routing',
+        suggestedHEI: 'Pending Allocation',
+        industryPledge: null,
         location: reportLocation,
-        latitude: coords?.latitude || 22.5958,
-        longitude: coords?.longitude || 88.2636,
-        imageUri: attachedImage, // Save the image to the ticket
-        status: 'Pending',
-        timestamp: 'Just now',
+        latitude: coords?.latitude || 23.3441,
+        longitude: coords?.longitude || 85.3096,
+        imageUri: attachedImage,
+        date: 'Just now',
       };
 
       const existingTicketsJson = await AsyncStorage.getItem('@citizen_tickets');
@@ -92,12 +98,12 @@ export default function ReviewScreen() {
       const updatedTickets = [newTicket, ...existingTickets];
       await AsyncStorage.setItem('@citizen_tickets', JSON.stringify(updatedTickets));
 
-      // Optional: Clear temporary storage after successful submission
       await AsyncStorage.removeItem('@temp_ticket_image');
 
       setTimeout(() => {
         setIsSubmitting(false);
-        router.push('/(citizen)/submit-problem/confirmation' as any);
+        // Assuming you have a confirmation screen, otherwise route back to citizen home
+        router.push('/(citizen)/home' as any); 
       }, 1000);
     } catch (error) {
       console.error('Failed to save ticket locally', error);
@@ -107,7 +113,7 @@ export default function ReviewScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0F1B1E', padding: 16 }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         
         <View style={{ marginBottom: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#E8A33D' }}>STEP 4 OF 4</Text>
@@ -116,7 +122,7 @@ export default function ReviewScreen() {
 
         <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#F2EFE9', marginBottom: 8 }}>Review your report</Text>
         <Text style={{ fontSize: 14, color: '#9BA8A6', marginBottom: 24 }}>
-          Please verify the details below before submitting to the authorities.
+          Please verify the details below before submitting to the innovation portal.
         </Text>
 
         <View style={{ backgroundColor: '#16262A', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#1D3238', marginBottom: 24 }}>
@@ -124,8 +130,8 @@ export default function ReviewScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 }}>
             <AlertTriangle size={20} color="#E8A33D" style={{ marginTop: 2, marginRight: 12 }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#9BA8A6', fontSize: 12, marginBottom: 4 }}>SELECTED DEPARTMENT</Text>
-              <Text style={{ color: '#F2EFE9', fontSize: 16, fontWeight: '500' }}>{reportCategory}</Text>
+              <Text style={{ color: '#9BA8A6', fontSize: 12, marginBottom: 4 }}>THEMATIC DOMAIN</Text>
+              <Text style={{ color: '#F2EFE9', fontSize: 16, fontWeight: '500' }}>{department}</Text>
             </View>
           </View>
 
@@ -133,7 +139,9 @@ export default function ReviewScreen() {
             <FileText size={20} color="#E8A33D" style={{ marginTop: 2, marginRight: 12 }} />
             <View style={{ flex: 1 }}>
               <Text style={{ color: '#9BA8A6', fontSize: 12, marginBottom: 4 }}>DESCRIPTION</Text>
-              <Text style={{ color: '#F2EFE9', fontSize: 14, lineHeight: 20 }}>{reportDescription}</Text>
+              <Text style={{ color: '#F2EFE9', fontSize: 14, lineHeight: 20 }}>
+                {description || 'No description provided.'}
+              </Text>
             </View>
           </View>
 
@@ -194,7 +202,7 @@ export default function ReviewScreen() {
           ) : (
             <>
               <Text style={{ color: '#0F1B1E', fontWeight: 'bold', fontSize: 16, marginRight: 8 }}>
-                Submit Report
+                Submit Challenge
               </Text>
               <Send size={18} color="#0F1B1E" />
             </>

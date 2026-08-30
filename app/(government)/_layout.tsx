@@ -53,6 +53,22 @@ export default function GovernmentTabLayout() {
           tabBarIcon: ({ color }) => <UserCircle size={22} color={color} />,
         }}
       />
+      
+      {/* Hide the dynamic ticket detail page from the tab bar */}
+      <Tabs.Screen 
+        name="ticket/[id]" 
+        options={{ 
+          href: null 
+        }} 
+      />
+
+      {/* Hide the analytics dashboard from the tab bar (if located in this folder) */}
+      <Tabs.Screen 
+        name="analytics" 
+        options={{ 
+          href: null 
+        }} 
+      />
     </Tabs>
   );
 }
