@@ -9,13 +9,34 @@ import { useFocusEffect } from '@react-navigation/native';
 export default function CitizenProfileScreen() {
   const router = useRouter();
   const [tickets, setTickets] = useState<any[]>([]);
+  
+  // Dynamic User State
+  const [userName, setUserName] = useState('Loading...');
+  const [userEmail, setUserEmail] = useState('Loading...');
 
-  // Refresh tickets whenever the profile tab comes into focus
+  // Refresh tickets and user data whenever the profile tab comes into focus
   useFocusEffect(
     React.useCallback(() => {
       loadTickets();
+      loadUserData();
     }, [])
   );
+
+  const loadUserData = async () => {
+    try {
+      const sessionJson = await AsyncStorage.getItem('@app_current_session');
+      if (sessionJson) {
+        const session = JSON.parse(sessionJson);
+        setUserName(session.name);
+        setUserEmail(session.email);
+      } else {
+        setUserName('Citizen User');
+        setUserEmail('Not provided');
+      }
+    } catch (error) {
+      console.error('Failed to load user session', error);
+    }
+  };
 
   const loadTickets = async () => {
     try {
@@ -36,7 +57,7 @@ export default function CitizenProfileScreen() {
         style: 'destructive',
         onPress: async () => {
           // Clear authentication session data securely
-          await AsyncStorage.multiRemove(['@app_user_role', '@user_email']);
+          await AsyncStorage.multiRemove(['@app_user_role', '@app_current_session']);
           router.replace('/(auth)/login' as any);
         }
       }
@@ -45,7 +66,7 @@ export default function CitizenProfileScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0F1B1E', padding: 16 }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         
         <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#F2EFE9', marginBottom: 20 }}>Citizen Profile</Text>
 
@@ -54,7 +75,10 @@ export default function CitizenProfileScreen() {
           <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#E8A33D', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
             <User size={40} color="#0F1B1E" />
           </View>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#F2EFE9', marginBottom: 4 }}>Souvojit Sadhukhan</Text>
+          
+          {/* Dynamic Name Injected Here */}
+          <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#F2EFE9', marginBottom: 4 }}>{userName}</Text>
+          
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
             <MapPin size={14} color="#9BA8A6" style={{ marginRight: 4 }} />
             <Text style={{ fontSize: 13, color: '#9BA8A6' }}>Howrah, West Bengal, India</Text>
@@ -74,7 +98,9 @@ export default function CitizenProfileScreen() {
             <Mail size={18} color="#9BA8A6" style={{ marginRight: 12 }} />
             <View>
               <Text style={{ color: '#9BA8A6', fontSize: 11 }}>EMAIL</Text>
-              <Text style={{ color: '#F2EFE9', fontSize: 14 }}>souvojit.s@sih2026.gov</Text>
+              
+              {/* Dynamic Email Injected Here */}
+              <Text style={{ color: '#F2EFE9', fontSize: 14 }}>{userEmail}</Text>
             </View>
           </View>
 

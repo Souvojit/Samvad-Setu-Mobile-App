@@ -1,8 +1,12 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LayoutDashboard, Map as MapIcon, UserCircle } from 'lucide-react-native';
 
 export default function CitizenTabLayout() {
+  // 1. Get the safe margins of the specific Android device
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -12,8 +16,10 @@ export default function CitizenTabLayout() {
         tabBarStyle: {
           backgroundColor: '#16262A',
           borderTopColor: '#1D3238',
-          height: 60,
-          paddingBottom: 8,
+          // 2. Dynamically add the Android system bar height to our custom height
+          height: 60 + insets.bottom,
+          // 3. Push the clickable icons up above the system buttons
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 8,
         },
       }}>
@@ -27,7 +33,6 @@ export default function CitizenTabLayout() {
         }}
       />
       
-      {/* Assuming you have a map screen for citizens. If not, you can change 'name' or set href: null */}
       <Tabs.Screen
         name="map"
         options={{

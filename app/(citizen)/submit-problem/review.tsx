@@ -16,7 +16,7 @@ export default function ReviewScreen() {
   const description = useProblemStore((state: any) => state.description);
 
   // Real GPS State
-  const [reportLocation, setReportLocation] = useState('Fetching current GPS location...');
+  const [reportLocation, setReportLocation] = useState('Fetching GPS location...');
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isLocLoading, setIsLocLoading] = useState(true);
 
@@ -40,31 +40,59 @@ export default function ReviewScreen() {
   const fetchCurrentGPSLocation = async () => {
     setIsLocLoading(true);
     try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setReportLocation('Jharkhand Region (Permission Denied)');
+      // 1. Verify device location services are active
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        setReportLocation('Location services disabled on device');
         setIsLocLoading(false);
         return;
       }
 
-      let currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+      // 2. Request runtime permissions
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setReportLocation('Location permission denied');
+        setIsLocLoading(false);
+        return;
+      }
+
+      // 3. Obtain location with balanced accuracy (fast lock for indoor/outdoor)
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      }).catch(async () => {
+        // Fallback to cached position if live satellite fix times out
+        return await Location.getLastKnownPositionAsync();
       });
 
-      const { latitude, longitude } = currentLocation.coords;
-      setCoords({ latitude, longitude });
+      if (!location) {
+        location = await Location.getLastKnownPositionAsync();
+      }
 
-      let reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
-      if (reverseGeocode.length > 0) {
-        const address = reverseGeocode[0];
-        const formatted = `${address.name || address.street || ''}, ${address.subregion || address.city || 'Jharkhand'}, ${address.region || 'India'}`;
-        setReportLocation(formatted.replace(/^,\s/, ''));
+      if (location) {
+        const { latitude, longitude } = location.coords;
+        setCoords({ latitude, longitude });
+
+        // 4. Reverse geocode to human-readable address
+        const reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (reverseGeocode && reverseGeocode.length > 0) {
+          const place = reverseGeocode[0];
+          const parts = [
+            place.name || place.street,
+            place.subregion || place.district || place.city,
+            place.region,
+            place.country,
+          ].filter(Boolean);
+
+          setReportLocation(parts.length > 0 ? parts.join(', ') : `Lat: ${latitude.toFixed(4)}, Long: ${longitude.toFixed(4)}`);
+        } else {
+          setReportLocation(`Lat: ${latitude.toFixed(4)}, Long: ${longitude.toFixed(4)}`);
+        }
       } else {
-        setReportLocation(`Lat: ${latitude.toFixed(4)}, Long: ${longitude.toFixed(4)}`);
+        setReportLocation('Unable to pinpoint location');
       }
     } catch (error) {
-      console.error('Error fetching GPS:', error);
-      setReportLocation('Jharkhand Region');
+      console.error('Error acquiring location:', error);
+      setReportLocation('Location unavailable');
     } finally {
       setIsLocLoading(false);
     }
@@ -73,14 +101,13 @@ export default function ReviewScreen() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Format data exactly as the HEI/Gov portals expect
       const ticketId = `CHAL-${Math.floor(1000 + Math.random() * 9000)}`;
       const newTicket = {
         id: ticketId,
-        title: description ? `${description.substring(0, 35)}...` : 'Grassroots Innovation Challenge',
-        domain: department, // Syncs with Government filters
-        description: description, 
-        stage: 'Submitted', // Triggers the NEP-2020 Lifecycle
+        title: description ? (description.length > 35 ? `${description.substring(0, 35)}...` : description) : 'Grassroots Innovation Challenge',
+        domain: department,
+        description: description,
+        stage: 'Submitted',
         status: 'Open for HEI Claim',
         assignedDept: 'Pending AI Routing',
         suggestedHEI: 'Pending Allocation',
@@ -102,9 +129,8 @@ export default function ReviewScreen() {
 
       setTimeout(() => {
         setIsSubmitting(false);
-        // Assuming you have a confirmation screen, otherwise route back to citizen home
-        router.push('/(citizen)/home' as any); 
-      }, 1000);
+        router.push('/(citizen)/home' as any);
+      }, 800);
     } catch (error) {
       console.error('Failed to save ticket locally', error);
       setIsSubmitting(false);
@@ -150,8 +176,10 @@ export default function ReviewScreen() {
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <Text style={{ color: '#9BA8A6', fontSize: 12 }}>GPS LOCATION</Text>
-                <TouchableOpacity onPress={fetchCurrentGPSLocation}>
-                  <Text style={{ color: '#2F9E8F', fontSize: 11, fontWeight: '600' }}>Refresh GPS</Text>
+                <TouchableOpacity onPress={fetchCurrentGPSLocation} disabled={isLocLoading}>
+                  <Text style={{ color: '#2F9E8F', fontSize: 11, fontWeight: '600' }}>
+                    {isLocLoading ? 'Locating...' : 'Refresh GPS'}
+                  </Text>
                 </TouchableOpacity>
               </View>
               {isLocLoading ? (
