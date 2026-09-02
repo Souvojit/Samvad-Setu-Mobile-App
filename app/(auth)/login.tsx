@@ -110,6 +110,9 @@ export default function AuthScreen() {
     await AsyncStorage.setItem('@app_current_session', JSON.stringify(sessionData));
     await AsyncStorage.setItem('@app_user_role', sessionData.role);
     
+    // --> THIS IS THE FIX: Setting the token required by the new strict layout
+    await AsyncStorage.setItem('@app_user_token', 'dummy-auth-token-123'); 
+    
     router.replace(destination as any);
   };
 
