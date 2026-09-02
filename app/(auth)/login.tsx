@@ -153,7 +153,7 @@ export default function AuthScreen() {
               </View>
             </View>
 
-            <View style={{ marginBottom: 22 }}>
+            <View style={{ marginBottom: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0F1B1E', borderRadius: 12, borderWidth: 1, borderColor: '#1D3238', paddingHorizontal: 12, paddingVertical: 12 }}>
                 <Lock size={18} color="#9BA8A6" style={{ marginRight: 10 }} />
                 <TextInput
@@ -166,6 +166,13 @@ export default function AuthScreen() {
                 />
               </View>
             </View>
+
+            {/* ---> NEW FORGOT PASSWORD LINK <--- */}
+            <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} style={{ marginBottom: 22, alignSelf: 'flex-end' }}>
+              <Text style={{ color: portal === 'Authority' ? '#2F9E8F' : '#E8A33D', fontSize: 13, fontWeight: '600' }}>
+                Forgot Password?
+              </Text>
+            </TouchableOpacity>
 
             {errorMessage ? <Text style={{ color: '#FFB4B4', fontSize: 12, marginBottom: 12, textAlign: 'center' }}>{errorMessage}</Text> : null}
 
