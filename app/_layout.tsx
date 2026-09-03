@@ -1,10 +1,11 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import OfflineBanner from '../components/OfflineBanner'; // Import the banner
+import { ThemeProvider } from '../context/ThemeContext'; // Import the ThemeProvider
 
 export default function RootLayout() {
   return (
-    <>
+    <ThemeProvider>
       {/* The banner sits at the very top of the app */}
       <OfflineBanner />
       
@@ -17,6 +18,6 @@ export default function RootLayout() {
         <Stack.Screen name="(hei)" />
         <Stack.Screen name="(industry)" />
       </Stack>
-    </>
+    </ThemeProvider>
   );
 }

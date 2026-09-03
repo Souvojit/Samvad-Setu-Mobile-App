@@ -6,21 +6,19 @@ import { Send, MapPin, FileText, AlertTriangle, Image as ImageIcon } from 'lucid
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useProblemStore } from '../../../store/problemStore';
+import { useTheme } from '../../../context/ThemeContext'; // Import theme hook
 
 export default function ReviewScreen() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { theme, isDarkMode } = useTheme(); // Pull dynamic theme
   
-  // Read from Zustand Global Memory
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const department = useProblemStore((state: any) => state.department);
   const description = useProblemStore((state: any) => state.description);
 
-  // Real GPS State
   const [reportLocation, setReportLocation] = useState('Fetching GPS location...');
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isLocLoading, setIsLocLoading] = useState(true);
-
-  // Attached Image State
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,7 +38,6 @@ export default function ReviewScreen() {
   const fetchCurrentGPSLocation = async () => {
     setIsLocLoading(true);
     try {
-      // 1. Verify device location services are active
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       if (!servicesEnabled) {
         setReportLocation('Location services disabled on device');
@@ -48,7 +45,6 @@ export default function ReviewScreen() {
         return;
       }
 
-      // 2. Request runtime permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setReportLocation('Location permission denied');
@@ -56,11 +52,9 @@ export default function ReviewScreen() {
         return;
       }
 
-      // 3. Obtain location with balanced accuracy (fast lock for indoor/outdoor)
       let location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       }).catch(async () => {
-        // Fallback to cached position if live satellite fix times out
         return await Location.getLastKnownPositionAsync();
       });
 
@@ -72,7 +66,6 @@ export default function ReviewScreen() {
         const { latitude, longitude } = location.coords;
         setCoords({ latitude, longitude });
 
-        // 4. Reverse geocode to human-readable address
         const reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
         if (reverseGeocode && reverseGeocode.length > 0) {
           const place = reverseGeocode[0];
@@ -138,72 +131,72 @@ export default function ReviewScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0F1B1E', padding: 16 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background, padding: 16 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         
         <View style={{ marginBottom: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#E8A33D' }}>STEP 4 OF 4</Text>
-          <Text style={{ fontSize: 12, color: '#9BA8A6' }}>Review & Submit</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: theme.citizenPrimary }}>STEP 4 OF 4</Text>
+          <Text style={{ fontSize: 12, color: theme.subtext }}>Review & Submit</Text>
         </View>
 
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#F2EFE9', marginBottom: 8 }}>Review your report</Text>
-        <Text style={{ fontSize: 14, color: '#9BA8A6', marginBottom: 24 }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.text, marginBottom: 8 }}>Review your report</Text>
+        <Text style={{ fontSize: 14, color: theme.subtext, marginBottom: 24 }}>
           Please verify the details below before submitting to the innovation portal.
         </Text>
 
-        <View style={{ backgroundColor: '#16262A', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#1D3238', marginBottom: 24 }}>
+        <View style={{ backgroundColor: theme.card, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: theme.border, marginBottom: 24 }}>
           
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 }}>
-            <AlertTriangle size={20} color="#E8A33D" style={{ marginTop: 2, marginRight: 12 }} />
+            <AlertTriangle size={20} color={theme.citizenPrimary} style={{ marginTop: 2, marginRight: 12 }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#9BA8A6', fontSize: 12, marginBottom: 4 }}>THEMATIC DOMAIN</Text>
-              <Text style={{ color: '#F2EFE9', fontSize: 16, fontWeight: '500' }}>{department}</Text>
+              <Text style={{ color: theme.subtext, fontSize: 12, marginBottom: 4 }}>THEMATIC DOMAIN</Text>
+              <Text style={{ color: theme.text, fontSize: 16, fontWeight: '500' }}>{department}</Text>
             </View>
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 }}>
-            <FileText size={20} color="#E8A33D" style={{ marginTop: 2, marginRight: 12 }} />
+            <FileText size={20} color={theme.citizenPrimary} style={{ marginTop: 2, marginRight: 12 }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#9BA8A6', fontSize: 12, marginBottom: 4 }}>DESCRIPTION</Text>
-              <Text style={{ color: '#F2EFE9', fontSize: 14, lineHeight: 20 }}>
+              <Text style={{ color: theme.subtext, fontSize: 12, marginBottom: 4 }}>DESCRIPTION</Text>
+              <Text style={{ color: theme.text, fontSize: 14, lineHeight: 20 }}>
                 {description || 'No description provided.'}
               </Text>
             </View>
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 }}>
-            <MapPin size={20} color="#E8A33D" style={{ marginTop: 2, marginRight: 12 }} />
+            <MapPin size={20} color={theme.citizenPrimary} style={{ marginTop: 2, marginRight: 12 }} />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <Text style={{ color: '#9BA8A6', fontSize: 12 }}>GPS LOCATION</Text>
+                <Text style={{ color: theme.subtext, fontSize: 12 }}>GPS LOCATION</Text>
                 <TouchableOpacity onPress={fetchCurrentGPSLocation} disabled={isLocLoading}>
-                  <Text style={{ color: '#2F9E8F', fontSize: 11, fontWeight: '600' }}>
+                  <Text style={{ color: theme.authorityPrimary, fontSize: 11, fontWeight: '600' }}>
                     {isLocLoading ? 'Locating...' : 'Refresh GPS'}
                   </Text>
                 </TouchableOpacity>
               </View>
               {isLocLoading ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                  <ActivityIndicator size="small" color="#2F9E8F" style={{ marginRight: 8 }} />
-                  <Text style={{ color: '#9BA8A6', fontSize: 13 }}>Acquiring satellite fix...</Text>
+                  <ActivityIndicator size="small" color={theme.authorityPrimary} style={{ marginRight: 8 }} />
+                  <Text style={{ color: theme.subtext, fontSize: 13 }}>Acquiring satellite fix...</Text>
                 </View>
               ) : (
-                <Text style={{ color: '#F2EFE9', fontSize: 14, lineHeight: 20 }}>{reportLocation}</Text>
+                <Text style={{ color: theme.text, fontSize: 14, lineHeight: 20 }}>{reportLocation}</Text>
               )}
             </View>
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <ImageIcon size={20} color="#E8A33D" style={{ marginTop: 2, marginRight: 12 }} />
+            <ImageIcon size={20} color={theme.citizenPrimary} style={{ marginTop: 2, marginRight: 12 }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#9BA8A6', fontSize: 12, marginBottom: 8 }}>EVIDENCE</Text>
+              <Text style={{ color: theme.subtext, fontSize: 12, marginBottom: 8 }}>EVIDENCE</Text>
               {attachedImage ? (
                 <Image 
                   source={{ uri: attachedImage }} 
-                  style={{ width: 100, height: 100, borderRadius: 8, borderWidth: 1, borderColor: '#2F9E8F' }} 
+                  style={{ width: 100, height: 100, borderRadius: 8, borderWidth: 1, borderColor: theme.authorityPrimary }} 
                 />
               ) : (
-                <Text style={{ color: '#E8A33D', fontSize: 14, fontWeight: '500' }}>No image attached</Text>
+                <Text style={{ color: theme.citizenPrimary, fontSize: 14, fontWeight: '500' }}>No image attached</Text>
               )}
             </View>
           </View>
@@ -216,7 +209,7 @@ export default function ReviewScreen() {
           onPress={handleSubmit}
           disabled={isSubmitting || isLocLoading}
           style={{ 
-            backgroundColor: '#2F9E8F', 
+            backgroundColor: theme.authorityPrimary, 
             paddingVertical: 16, 
             borderRadius: 12, 
             flexDirection: 'row', 
@@ -226,13 +219,13 @@ export default function ReviewScreen() {
           }}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#0F1B1E" />
+            <ActivityIndicator color={isDarkMode ? '#0F1B1E' : '#FFFFFF'} />
           ) : (
             <>
-              <Text style={{ color: '#0F1B1E', fontWeight: 'bold', fontSize: 16, marginRight: 8 }}>
+              <Text style={{ color: isDarkMode ? '#0F1B1E' : '#FFFFFF', fontWeight: 'bold', fontSize: 16, marginRight: 8 }}>
                 Submit Challenge
               </Text>
-              <Send size={18} color="#0F1B1E" />
+              <Send size={18} color={isDarkMode ? '#0F1B1E' : '#FFFFFF'} />
             </>
           )}
         </TouchableOpacity>
